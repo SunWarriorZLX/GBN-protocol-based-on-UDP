@@ -3,4 +3,4 @@ project(UDP_GBN_LIB C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_library(UDP_GBN_LIB SHARED library.c library.h)
+add_library(UDP_GBN_LIB SHARED udp_gbn.c udp_gbn.h)

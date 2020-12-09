@@ -6,8 +6,10 @@
 #define UDP_GBN_LIB_UDP_GBN_H
 #define DATA_LEN 16
 #define unint_32 unsigned int
+
 #include <string.h>
 #include <stdlib.h>
+
 struct udp_gbn_frame {
     unint_32 maxseq;
     unint_32 seq;
@@ -18,6 +20,6 @@ struct frames_list {
     struct frames_list *next;
 };
 
-struct frames_list* gen_frames_list(char *DATA);
+struct frames_list *gen_frames_list(char *DATA);
 
 #endif //UDP_GBN_LIB_UDP_GBN_H

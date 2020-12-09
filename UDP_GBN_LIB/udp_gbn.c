@@ -19,5 +19,6 @@ struct frames_list *gen_frames_list(char *DATA) {
     current->current.maxseq = maxseq;
     current->current.seq = seq;
     memcpy(current->current.data, DATA + DATA_LEN * seq, strlen(DATA) - DATA_LEN * seq);
+    current->next = NULL;
     return head;
 }
