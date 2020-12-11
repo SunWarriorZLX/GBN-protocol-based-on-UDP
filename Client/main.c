@@ -24,6 +24,19 @@ int main() {
         perror("inet_pthon failed");
         exit(EXIT_FAILURE);
     }
+
+    /******设置接收超时 setting receiving timeout ********/
+    struct timeval timeout;
+    timeout.tv_sec = 3;/* second */
+    timeout.tv_usec = 0;/*microsecond*/
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(struct timeval)) == -1) {
+        perror("setsockopt SO_RCVTIMEO failed");
+        exit(EXIT_FAILURE);
+    }
+    /***************************************************/
+
+    send_rec_request(sockfd, (struct sockaddr *) &server_addr, &server_addr_len);
+    /*
     buffer.maxseq = 1;
     buffer.seq = 1;
     strcpy(buffer.data, "HELLO SERVER");
@@ -31,5 +44,6 @@ int main() {
     printf("HELLO MESSAGE SENT\n");
     recvfrom(sockfd, &buffer, buffer_len, 0, (struct sockaddr *) &server_addr, &server_addr_len);
     printf("FROM SERVER %s", buffer.data);
+    */
     return 0;
 }
