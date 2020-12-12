@@ -1,3 +1,7 @@
+//
+// Created SunWarriorZLX
+// email sunknightzlx@outlook.com
+//
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +14,6 @@
 
 int main() {
     int sockfd;
-    unsigned int buffer_len = sizeof(struct udp_gbn_frame);
     struct sockaddr_in server_addr;
     unsigned int server_addr_len = sizeof(server_addr);
     struct udp_gbn_frame buffer;

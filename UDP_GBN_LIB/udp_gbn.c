@@ -1,12 +1,15 @@
 //
-// Created by 张力炫 on 2020/12/9.
+// Created by SunWarriorZLX
+// email sunknightzlx@outlook.com
 //
 
 #include "udp_gbn.h"
 
+/*将字符串数组转换GBN帧列表 Convert string array to GBN frame list*/
 struct frames_list *gen_frames_list(char *DATA, unsigned int length) {
     if (DATA == NULL)
         return NULL;
+    /*通过余数判断maxseq是否需要加一 Determine whether maxseq needs to be added by one by the remainder */
     unint_32 maxseq = length / DATA_LEN + (length % DATA_LEN > 0);
     unint_32 seq = 1;
     bool ack = false;
@@ -28,6 +31,7 @@ struct frames_list *gen_frames_list(char *DATA, unsigned int length) {
     return head;
 }
 
+/*将字符串数组转换GBN帧数组 Convert string array to GBN frame array*/
 struct udp_gbn_frame *gen_frames_arry(char *DATA, unsigned int length) {
     if (DATA == NULL)
         return NULL;
@@ -48,6 +52,7 @@ struct udp_gbn_frame *gen_frames_arry(char *DATA, unsigned int length) {
     return ret;
 }
 
+/*生成ACK帧 GEN ACK frame*/
 struct udp_gbn_frame gen_ack_frame(int maxseq, int seq) {
     struct udp_gbn_frame ret;
     ret.seq = seq;
@@ -57,19 +62,22 @@ struct udp_gbn_frame gen_ack_frame(int maxseq, int seq) {
     return ret;
 }
 
+/*通过UDP-GBN协议发送和接收请求帧 Send and receive request frame by UDP-GBN*/
 struct udp_gbn_frame send_rec_request(int sockfd, struct sockaddr *addr, socklen_t *addr_len) {
-    struct udp_gbn_frame request;/*请求帧*/
-    struct udp_gbn_frame ret;/*返回帧*/
-    /*生成请求帧，dada[0]初始化为全1作为辨识标志*/
+    struct udp_gbn_frame request;/*request frame 请求帧*/
+    struct udp_gbn_frame ret;/*return frame 返回帧*/
+    /*生成请求帧，dada[0]初始化为全1作为辨识标志 generate request frame，
+dada[0] is initialized to all 1s as the identification mark*/
     request.maxseq = 1;
     request.ack = false;
     request.seq = 1;
     request.data[0] = 0x11;
     int reclen;/*返回帧长*/
+    /*非阻塞接收，若超时则等待20s后重新发送 Non-blocking reception, if timeout, wait for 20s and resend*/
     for (int i = 0; i < MAX_RESEND; i++) {
         sendto(sockfd, &request, sizeof(struct udp_gbn_frame), 0, addr, *addr_len);
         printf("\n request sent\n");
-        reclen = recvfrom(sockfd, &ret, sizeof(struct udp_gbn_frame), 0, addr, addr_len);/*非阻塞模式接收*/
+        reclen = recvfrom(sockfd, &ret, sizeof(struct udp_gbn_frame), 0, addr, addr_len);
         if (reclen == -1) {
             printf("\n%d can not receive ack , 20s later retry\n", i);
             sleep(20);
@@ -81,6 +89,7 @@ struct udp_gbn_frame send_rec_request(int sockfd, struct sockaddr *addr, socklen
     perror("can not receive ack , request failed");
     exit(EXIT_FAILURE);
 }
+
 
 int udp_gbn_send_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len, struct udp_gbn_frame *data,
                       unint_32 data_len) {
@@ -95,8 +104,16 @@ int udp_gbn_send_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len, st
     printf("\nSend message by GBN-UDP to Client\n");
     while (base <= maxseq) {
         if (nextseq < base + WIN_SIZE && nextseq <= maxseq) {
+            /*模拟丢帧 Simulate dropped frames*/
+            int RAND = rand();
+            if (RAND % 20 == 5) {
+                printf("\nSimulate dropped frames %d\n", nextseq);
+                goto JUMP1;
+            }
+            /*若随机数模20余5则跳过发送*/
             sendto(sockfd, data + nextseq - 1, sizeof(struct udp_gbn_frame), 0, (struct sockaddr *) addr,
                    *addr_len);
+            JUMP1:
             printf("\nSend frame %d\n", nextseq);
             rcvpkt[nextseq] = false;
             if (base == nextseq) {
@@ -107,6 +124,9 @@ int udp_gbn_send_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len, st
             nextseq += 1;
             sleep(2);
         }
+        /*超时 TIMEOUT*/
+        /*重启时钟，并重发base到nextseq的帧*/
+        /* Restart the clock and retransmit the frame from base to nextseq */
         if (flag && clock() - start > TIMEOUT) {
             printf("\nTime out\n");
             printf("\nStart Timer\n");
@@ -118,10 +138,14 @@ int udp_gbn_send_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len, st
                 printf("\nResend frame %d\n", i);
             }
         }
+
+        /*接收ACK帧 Accept ACK frame*/
         struct udp_gbn_frame ack;
         if (recvfrom(sockfd, &ack, sizeof(struct udp_gbn_frame), 0, (struct sockaddr *) addr, addr_len) > 0) {
             printf("\nReceive ack frame %d\n", ack.seq);
             rcvpkt[ack.seq] = true;
+
+            /* 接收的seq==base时，窗口向前滑动 When the received seq==base, the window slides forward*/
             if (ack.seq == base) {
                 while (rcvpkt[base] == true && base < nextseq)
                     base += 1;
@@ -146,6 +170,7 @@ udp_gbn_rec_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len,
     struct udp_gbn_frame buffer;
     struct udp_gbn_frame ack;
     int expected = 1;
+    /* 按照seq有序接收，否则将该真丢弃 Receive in order according to seq, otherwise the true will be discarded*/
     for (; expected <= data_len;) {
         if (recvfrom(sockfd, &buffer, sizeof(struct udp_gbn_frame), 0, addr, addr_len) > 0) {
             printf("\nReceive frame %d\n", buffer.seq);
