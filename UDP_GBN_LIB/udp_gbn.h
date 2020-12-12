@@ -18,8 +18,9 @@
 
 #define unint_32 unsigned int
 #define DATA_LEN 16
-#define WIN_SIZE 20;
+#define WIN_SIZE 20
 #define MAX_RESEND 5
+#define TIMEOUT 40
 
 #define PORT 8000
 
@@ -39,8 +40,15 @@ struct frames_list *gen_frames_list(char *DATA, unsigned int length);
 
 struct udp_gbn_frame *gen_frames_arry(char *DATA, unsigned int length);
 
-struct udp_gbn_frame gen_ack_frame(int maxseq);
+struct udp_gbn_frame gen_ack_frame(int maxseq, int seq);
 
 struct udp_gbn_frame send_rec_request(int sockfd, struct sockaddr *addr, socklen_t *addr_len);
+
+int udp_gbn_send_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len, struct udp_gbn_frame *data,
+                      unint_32 data_len);
+
+struct udp_gbn_frame *
+udp_gbn_rec_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len,
+                 unint_32 data_len);
 
 #endif //UDP_GBN_LIB_UDP_GBN_H

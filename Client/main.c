@@ -35,7 +35,13 @@ int main() {
     }
     /***************************************************/
 
-    send_rec_request(sockfd, (struct sockaddr *) &server_addr, &server_addr_len);
+    struct udp_gbn_frame ser_ackframe = send_rec_request(sockfd, (struct sockaddr *) &server_addr, &server_addr_len);
+    struct udp_gbn_frame *rec = udp_gbn_rec_data(sockfd, (struct sockaddr *) &server_addr, &server_addr_len,
+                                                 ser_ackframe.maxseq);
+    for(int i=0;i<ser_ackframe.maxseq;i++){
+        printf("%s",rec[i].data);
+    }
+
     /*
     buffer.maxseq = 1;
     buffer.seq = 1;

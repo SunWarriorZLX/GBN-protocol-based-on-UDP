@@ -8,6 +8,7 @@
 
 char *LoadFile(int *length) {
     /************读取待发送文本 Loading file*************/
+    /* length作为字符数组长度的返回值 */
     FILE *fp;
     if ((fp = fopen("/Users/zhanglixuan/GBN-protocol-based-on-UDP/Server/Saying Good-bye to Cambridge Again.txt",
                     "r")) == NULL) {
@@ -44,6 +45,16 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    /******设置接收超时 setting receiving timeout ********/
+    struct timeval timeout;
+    timeout.tv_sec = 3;/* second */
+    timeout.tv_usec = 0;/*microsecond*/
+    if (setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(struct timeval)) == -1) {
+        perror("setsockopt SO_RCVTIMEO failed");
+        exit(EXIT_FAILURE);
+    }
+    /***************************************************/
+
     /**等待用户发出请求 waiting for request from client***/
     for (int i = 0; i < 100; i++) {
         printf("\nwaiting for request\n");
@@ -57,13 +68,14 @@ int main() {
             int length;
             char *data = LoadFile(&length);
             int maxseq = length / DATA_LEN + (length % DATA_LEN > 0);
-            struct udp_gbn_frame ack = gen_ack_frame(maxseq);
+            struct udp_gbn_frame ack = gen_ack_frame(maxseq, maxseq);
             struct udp_gbn_frame *frame_arry;
             printf("\nsend ack frame\n");
             sendlen = sendto(server_fd, &ack, sizeof(struct udp_gbn_frame), 0, (struct sockaddr *) &client_addr,
                              client_addr_len);
             sleep(5);
             frame_arry = gen_frames_arry(data, length);
+            udp_gbn_send_data(server_fd, (struct sockaddr *) &client_addr, &client_addr_len, frame_arry, length);
             /*
             for(int j=0;j<length;j++){
                 printf("%s",frame_arry[j].data);
