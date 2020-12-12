@@ -95,18 +95,17 @@ int udp_gbn_send_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len, st
                       unint_32 data_len) {
     bool *rcvpkt = (bool *) malloc(sizeof(bool) * (data_len + 1));
     rcvpkt[0] = true;
-    /*用于判断ack是否连续，通过将rcvpkt[0]设置为1，每次接收新的分组时只需要检查rcvpkt[k-1]是否为1即可知道ack包是否连续*/
     int base = 1;
     int nextseq = 1;
     int maxseq = data[0].maxseq;
     clock_t start;
     bool flag = false;/*计时标志 Timing flag*/
     printf("\nSend message by GBN-UDP to Client\n");
-    while (base <= maxseq) {
+    while (base <= maxseq && base < maxseq) {
         if (nextseq < base + WIN_SIZE && nextseq <= maxseq) {
             /*模拟丢帧 Simulate dropped frames*/
             int RAND = rand();
-            if (RAND % 20 == 5) {
+            if (RAND % 6 == 1) {
                 printf("\nSimulate dropped frames %d\n", nextseq);
                 goto JUMP1;
             }
@@ -122,7 +121,7 @@ int udp_gbn_send_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len, st
                 flag = true;
             }
             nextseq += 1;
-            sleep(2);
+            sleep(1);
         }
         /*超时 TIMEOUT*/
         /*重启时钟，并重发base到nextseq的帧*/
@@ -135,6 +134,7 @@ int udp_gbn_send_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len, st
             for (int i = base; i < nextseq; i++) {
                 sendto(sockfd, data + i - 1, sizeof(struct udp_gbn_frame), 0, (struct sockaddr *) addr,
                        *addr_len);
+                rcvpkt[i] = false;
                 printf("\nResend frame %d\n", i);
             }
         }
@@ -170,16 +170,30 @@ udp_gbn_rec_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len,
     struct udp_gbn_frame buffer;
     struct udp_gbn_frame ack;
     int expected = 1;
+    clock_t start;
     /* 按照seq有序接收，否则将该真丢弃 Receive in order according to seq, otherwise the true will be discarded*/
     for (; expected <= data_len;) {
+        int RAND = rand();
         if (recvfrom(sockfd, &buffer, sizeof(struct udp_gbn_frame), 0, addr, addr_len) > 0) {
             printf("\nReceive frame %d\n", buffer.seq);
             if (buffer.seq == expected) {
+                start = clock();
                 *(ret + expected - 1) = buffer;
                 ack = gen_ack_frame(data_len, expected);
+                /*Simulate dropped ack*/
+                if (RAND % 6 == 2) {
+                    printf("\nSimulate dropped ack %d\n", ack.seq);
+                    goto JUMP2;
+                }
                 sendto(sockfd, &ack, sizeof(struct udp_gbn_frame), 0, addr, *addr_len);
+                JUMP2:
                 printf("\nFrame %d accept\n", expected);
                 expected += 1;
+            }
+            if (clock() - start > 120) {
+                printf("\nReceive Timeout expected-=1\n");
+                expected -= 1;
+                start = clock();
             }
         }
     }

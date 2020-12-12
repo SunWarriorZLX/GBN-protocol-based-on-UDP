@@ -34,7 +34,7 @@
 #define DATA_LEN 16 /* GBN帧的数据区长度 The length of the data area of the GBN frame */
 #define WIN_SIZE 20 /* GBN 窗口数量 The amount of GBN Windows */
 #define MAX_RESEND 5
-#define TIMEOUT 40
+#define TIMEOUT 60
 
 #define PORT 8000
 
