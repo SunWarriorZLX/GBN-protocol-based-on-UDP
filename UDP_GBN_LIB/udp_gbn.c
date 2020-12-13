@@ -105,7 +105,7 @@ int udp_gbn_send_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len, st
         if (nextseq < base + WIN_SIZE && nextseq <= maxseq) {
             /*模拟丢帧 Simulate dropped frames*/
             int RAND = rand();
-            if (RAND % 6 == 1) {
+            if (RAND % 4 == 1) {
                 printf("\nSimulate dropped frames %d\n", nextseq);
                 goto JUMP1;
             }
@@ -170,31 +170,34 @@ udp_gbn_rec_data(int sockfd, struct sockaddr *addr, socklen_t *addr_len,
     struct udp_gbn_frame buffer;
     struct udp_gbn_frame ack;
     int expected = 1;
-    clock_t start;
+    //clock_t start;
     /* 按照seq有序接收，否则将该真丢弃 Receive in order according to seq, otherwise the true will be discarded*/
     for (; expected <= data_len;) {
-        int RAND = rand();
+        //int RAND = rand();
         if (recvfrom(sockfd, &buffer, sizeof(struct udp_gbn_frame), 0, addr, addr_len) > 0) {
             printf("\nReceive frame %d\n", buffer.seq);
             if (buffer.seq == expected) {
-                start = clock();
+                //start = clock();
                 *(ret + expected - 1) = buffer;
                 ack = gen_ack_frame(data_len, expected);
                 /*Simulate dropped ack*/
-                if (RAND % 6 == 2) {
+/*                if (RAND % 10 == 2) {
                     printf("\nSimulate dropped ack %d\n", ack.seq);
                     goto JUMP2;
-                }
+                }*/
                 sendto(sockfd, &ack, sizeof(struct udp_gbn_frame), 0, addr, *addr_len);
-                JUMP2:
+                //JUMP2:
                 printf("\nFrame %d accept\n", expected);
                 expected += 1;
+                sleep(4);
             }
-            if (clock() - start > 120) {
+/*            if (clock() - start > 60) {
                 printf("\nReceive Timeout expected-=1\n");
                 expected -= 1;
+                if (expected <= 0)
+                    expected = 1;
                 start = clock();
-            }
+            }*/
         }
     }
     printf("\nFinish\n");
