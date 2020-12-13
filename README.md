@@ -1,8 +1,9 @@
 GBN protocol based on UDP
+
 Created SunWarriorZLX
+
 email sunknightzlx@outlook.com
 
-/*
  * 基于UDP协议设计GBN协议、
  * 以下的内容包括：
  * GBN协议的报文格式
@@ -14,4 +15,3 @@ email sunknightzlx@outlook.com
  * The format of GBN frame
  * Two ways to convert the content to be sent into a message sequence (linear structure and chain structure)
  * Send and receive message based on GBN
- */
